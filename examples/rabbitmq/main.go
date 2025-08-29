@@ -48,7 +48,7 @@ func main() {
 	message := &mqsd.Message{
 		Topic: "test-topic",
 		Body:  []byte("Hello RabbitMQ!"),
-		Headers: map[string]string{
+		Headers: map[string]interface{}{
 			"source": "example",
 		},
 	}

@@ -6,11 +6,11 @@ import (
 
 // Message 消息结构体
 type Message struct {
-	ID        string            `json:"id"`
-	Topic     string            `json:"topic"`
-	Body      interface{}       `json:"body"`
-	Headers   map[string]string `json:"headers,omitempty"`
-	Timestamp int64             `json:"timestamp"`
+	ID        string                 `json:"id"`
+	Topic     string                 `json:"topic"`
+	Body      interface{}            `json:"body"`
+	Headers   map[string]interface{} `json:"headers,omitempty"`
+	Timestamp int64                  `json:"timestamp"`
 }
 
 // MessageHandler 消息处理函数类型

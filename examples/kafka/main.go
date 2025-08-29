@@ -49,7 +49,7 @@ func main() {
 	message := &mqsd.Message{
 		Topic: "test-topic",
 		Body:  []byte("Hello Kafka!"),
-		Headers: map[string]string{
+		Headers: map[string]interface{}{
 			"source": "example",
 		},
 	}
