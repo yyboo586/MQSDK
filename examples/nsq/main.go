@@ -7,23 +7,61 @@ import (
 	"sync"
 	"time"
 
-	mqsd "github.com/yyboo586/MQSDK"
+	mqsdk "github.com/yyboo586/MQSDK"
 )
 
-var config = &mqsd.NSQConfig{
+var config = &mqsdk.NSQConfig{
 	Type:     "nsq",
-	NSQDAddr: "124.220.236.38:4150",
+	NSQDAddr: "124.221.243.128:4150",
 	// 不使用NSQLookup，直接连接NSQD
 	// NSQLookup: []string{},
 }
 
 var testTopics = []string{
-	"test-topic-0",
+	"core.push.users",
 	"test-topic-1",
 	"test-topic-2",
 }
 
 func main() {
+	// test01()
+	topic := "core.push.users"
+	factory := mqsdk.NewFactory()
+
+	// 创建生产者
+	producer, err := factory.NewProducer(config)
+	if err != nil {
+		log.Fatalf("Failed to create producer: %v", err)
+	}
+	defer producer.Close()
+
+	for i := 0; i < 1000; i++ {
+		body := map[string]interface{}{
+			"user_ids": []string{"11111111-0000-0000-0000-000000000000", "dd58fefd-1238-4d4b-8653-705def8733dc"},
+			"content": map[string]interface{}{
+				fmt.Sprintf("key_%d", i): fmt.Sprintf("value_%d", i),
+			},
+		}
+
+		message := &mqsdk.Message{
+			Topic: topic,
+			Body:  body,
+			Headers: map[string]interface{}{
+				"source": "example",
+			},
+			Timestamp: time.Now().Unix(),
+		}
+
+		err = producer.Publish(context.Background(), topic, message)
+		if err != nil {
+			log.Fatalf("Failed to publish message: %v", err)
+		}
+
+		log.Printf("publish message: %s for topic: %s", message.Body, topic)
+	}
+}
+
+func test01() {
 	ctx, cancel := context.WithCancel(context.Background())
 	var wg sync.WaitGroup
 	for i := 0; i < len(testTopics); i++ {
@@ -49,7 +87,7 @@ func main() {
 }
 
 func producer(topic string) {
-	factory := mqsd.NewFactory()
+	factory := mqsdk.NewFactory()
 
 	// 创建生产者
 	producer, err := factory.NewProducer(config)
@@ -59,7 +97,7 @@ func producer(topic string) {
 	defer producer.Close()
 
 	for i := 0; i < 10; i++ {
-		message := &mqsd.Message{
+		message := &mqsdk.Message{
 			Topic: topic,
 			Body:  fmt.Sprintf("%s-test %d", topic, time.Now().Unix()),
 			Headers: map[string]interface{}{
@@ -79,7 +117,7 @@ func producer(topic string) {
 }
 
 func consumer(ctx context.Context, topic string) {
-	factory := mqsd.NewFactory()
+	factory := mqsdk.NewFactory()
 
 	consumer, err := factory.NewConsumer(config)
 	if err != nil {
@@ -87,7 +125,7 @@ func consumer(ctx context.Context, topic string) {
 	}
 	defer consumer.Close()
 
-	err = consumer.Subscribe(context.Background(), topic, "test-channel", func(msg *mqsd.Message) error {
+	err = consumer.Subscribe(context.Background(), topic, "test-channel", func(msg *mqsdk.Message) error {
 		fmt.Printf("Received message: ID=%s, Topic=%s, Body=%s\n",
 			msg.ID, msg.Topic, msg.Body)
 		return nil

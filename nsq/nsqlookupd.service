@@ -1,0 +1,13 @@
+[Unit]
+Description=NSQ Lookup Daemon
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/usr/share/nsq
+ExecStart=/usr/share/nsq/nsqlookupd
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target 

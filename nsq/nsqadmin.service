@@ -1,0 +1,14 @@
+[Unit]
+Description=NSQ Admin Web Interface
+After=network.target nsqlookupd.service
+Requires=nsqlookupd.service
+
+[Service]
+User=root
+WorkingDirectory=/usr/share/nsq
+ExecStart=/usr/share/nsq/nsqadmin --lookupd-http-address=127.0.0.1:4161
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target 

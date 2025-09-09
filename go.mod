@@ -2,7 +2,6 @@ module github.com/yyboo586/MQSDK
 
 go 1.21
 
-
 require (
 	github.com/Shopify/sarama v1.38.1
 	github.com/google/uuid v1.3.0

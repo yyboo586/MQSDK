@@ -6,12 +6,12 @@ import (
 	"log"
 	"time"
 
-	mqsd "github.com/yyboo586/MQSDK"
+	mqsdk "github.com/yyboo586/MQSDK"
 )
 
 func main() {
 	// 创建Kafka配置
-	config := &mqsd.KafkaConfig{
+	config := &mqsdk.KafkaConfig{
 		Type:    "kafka",
 		Brokers: []string{"localhost:9092"},
 		GroupID: "test-group",
@@ -19,7 +19,7 @@ func main() {
 	}
 
 	// 创建工厂
-	factory := mqsd.NewFactory()
+	factory := mqsdk.NewFactory()
 
 	// 创建生产者
 	producer, err := factory.NewProducer(config)
@@ -36,7 +36,7 @@ func main() {
 	defer consumer.Close()
 
 	// 订阅主题
-	err = consumer.Subscribe(context.Background(), "test-topic", "test-channel", func(msg *mqsd.Message) error {
+	err = consumer.Subscribe(context.Background(), "test-topic", "test-channel", func(msg *mqsdk.Message) error {
 		fmt.Printf("Received message: ID=%s, Topic=%s, Body=%s\n",
 			msg.ID, msg.Topic, msg.Body)
 		return nil
@@ -46,7 +46,7 @@ func main() {
 	}
 
 	// 发布消息
-	message := &mqsd.Message{
+	message := &mqsdk.Message{
 		Topic: "test-topic",
 		Body:  []byte("Hello Kafka!"),
 		Headers: map[string]interface{}{

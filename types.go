@@ -1,4 +1,4 @@
-package mqsd
+package mqsdk
 
 import (
 	"context"

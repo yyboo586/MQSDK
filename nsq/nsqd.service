@@ -1,0 +1,14 @@
+[Unit]
+Description=NSQ Daemon
+After=network.target nsqlookupd.service
+Requires=nsqlookupd.service
+
+[Service]
+User=root
+WorkingDirectory=/usr/share/nsq
+ExecStart=/usr/share/nsq/nsqd --lookupd-tcp-address=127.0.0.1:4160
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target 
