@@ -43,7 +43,14 @@ func (p *NSQProducer) Publish(ctx context.Context, topic string, msg *Message) e
 		return fmt.Errorf("failed to marshal message: %w", err)
 	}
 
-	return p.producer.Publish(topic, data)
+	err = p.producer.Publish(topic, data)
+	if err != nil {
+		fmt.Printf("[NSQ ERROR] Failed to publish message to topic: %s, msgID: %s, error: %v\n", topic, msg.ID, err)
+		return err
+	}
+	
+	fmt.Printf("[NSQ] Successfully published message to topic: %s, msgID: %s, timestamp: %d\n", topic, msg.ID, msg.Timestamp)
+	return nil
 }
 
 // Close 关闭连接
