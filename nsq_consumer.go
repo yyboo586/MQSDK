@@ -14,8 +14,8 @@ import (
 // NSQConsumer NSQ消费者
 type NSQConsumer struct {
 	config    *NSQConfig
-	consumers map[string]*nsq.Consumer
-	handlers  map[string]MessageHandler
+	consumers map[string]*nsq.Consumer // key: topic+channel
+	handlers  map[string]MessageHandler // key: topic+channel
 
 	mu sync.RWMutex
 }
@@ -33,11 +33,15 @@ func NewNSQConsumer(config *NSQConfig) (*NSQConsumer, error) {
 
 // Subscribe 订阅主题
 func (c *NSQConsumer) Subscribe(ctx context.Context, topic string, channel string, handler MessageHandler) error {
+	key := fmt.Sprintf("%s-%s", topic, channel)
+	
 	c.mu.Lock()
-	c.handlers[topic] = handler
+	c.handlers[key] = handler
 	c.mu.Unlock()
 
-	// 为每个topic创建独立的Consumer
+	log.Printf("[NSQ] Subscribing to topic: %s, channel: %s", topic, channel)
+
+	// 为每个topic+channel创建独立的Consumer
 	if err := c.createConsumerForTopic(topic, channel); err != nil {
 		return fmt.Errorf("failed to create consumer for topic %s: %w", topic, err)
 	}
@@ -46,9 +50,12 @@ func (c *NSQConsumer) Subscribe(ctx context.Context, topic string, channel strin
 
 // createConsumerForTopic 为指定topic创建Consumer
 func (c *NSQConsumer) createConsumerForTopic(topic string, channel string) error {
+	key := fmt.Sprintf("%s-%s", topic, channel)
+	
 	c.mu.Lock()
-	if _, exists := c.consumers[topic]; exists {
+	if _, exists := c.consumers[key]; exists {
 		c.mu.Unlock()
+		log.Printf("[NSQ] Consumer already exists for topic: %s, channel: %s", topic, channel)
 		return nil
 	}
 
@@ -68,18 +75,29 @@ func (c *NSQConsumer) createConsumerForTopic(topic string, channel string) error
 	consumer.AddHandler(nsq.HandlerFunc(func(message *nsq.Message) error {
 		var msg Message
 		if err := json.Unmarshal(message.Body, &msg); err != nil {
-			log.Printf("failed to unmarshal message: %v", err)
+			log.Printf("[NSQ ERROR] Failed to unmarshal message from topic %s, channel %s: %v, raw: %s", topic, channel, err, string(message.Body))
 			return err
 		}
 
-		// 使用当前topic的handler
-		c.mu.RLock()
-		if handler, exists := c.handlers[topic]; exists {
-			c.mu.RUnlock()
-			return handler(&msg)
-		}
-		c.mu.RUnlock()
+		log.Printf("[NSQ] Received message from topic: %s, channel: %s, msgID: %s, timestamp: %d", topic, channel, msg.ID, msg.Timestamp)
 
+		// 使用当前topic+channel的handler
+		key := fmt.Sprintf("%s-%s", topic, channel)
+		c.mu.RLock()
+		handler, exists := c.handlers[key]
+		c.mu.RUnlock()
+		
+		if !exists {
+			log.Printf("[NSQ WARN] No handler found for topic: %s, channel: %s", topic, channel)
+			return nil
+		}
+		
+		if err := handler(&msg); err != nil {
+			log.Printf("[NSQ ERROR] Handler failed for topic: %s, channel: %s, msgID: %s, error: %v", topic, channel, msg.ID, err)
+			return err
+		}
+		
+		log.Printf("[NSQ] Successfully processed message from topic: %s, channel: %s, msgID: %s", topic, channel, msg.ID)
 		return nil
 	}))
 
@@ -96,9 +114,10 @@ func (c *NSQConsumer) createConsumerForTopic(topic string, channel string) error
 	}
 
 	c.mu.Lock()
-	c.consumers[topic] = consumer
+	c.consumers[key] = consumer
 	c.mu.Unlock()
 
+	log.Printf("[NSQ] Successfully created consumer for topic: %s, channel: %s", topic, channel)
 	return nil
 }
 
